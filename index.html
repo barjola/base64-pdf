@@ -28,6 +28,7 @@
       padding: 1rem;
       display: flex;
       flex-direction: column;
+      width: 30%;
     }
 
     .resizer {
@@ -53,6 +54,20 @@
       padding: 0.5rem;
     }
 
+    input[type="text"] {
+      margin-top: 0.5rem;
+      padding: 0.4rem;
+      font-size: 0.9rem;
+      width: 100%;
+    }
+
+    button {
+      margin-top: 0.5rem;
+      padding: 0.5rem;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+
     h2 {
       margin-top: 0;
     }
@@ -69,8 +84,12 @@
 <div class="container">
   <div class="sidebar" id="leftPane">
     <h2>Base64 del PDF</h2>
-	<div id="error" class="error"></div>
-    <textarea id="base64input" placeholder="Pega aquí el base64 del PDF..."></textarea>    
+    <div id="error" class="error"></div>
+    <textarea id="base64input" placeholder="Pega aquí el base64 del PDF..."></textarea>
+
+    <input type="text" id="filename" value="descarga.pdf" placeholder="Nombre del archivo" />
+
+    <button id="downloadBtn">⬇ Descargar PDF</button>
   </div>
 
   <div class="resizer" id="resizer"></div>
@@ -84,16 +103,17 @@
   const errorDiv = document.getElementById("error");
   const resizer = document.getElementById("resizer");
   const leftPane = document.getElementById("leftPane");
+  const filenameInput = document.getElementById("filename");
+  const downloadBtn = document.getElementById("downloadBtn");
+
+  let currentBlob = null;
 
   // Restaurar ancho del panel izquierdo desde localStorage
   const savedWidth = localStorage.getItem("leftPaneWidth");
   if (savedWidth) {
     leftPane.style.width = savedWidth + "px";
-  } else {
-    leftPane.style.width = "30%";
   }
 
-  // Actualizar PDF al escribir
   function actualizarPDF() {
     const input = textarea.value.trim();
     const base64 = input.startsWith("data:application/pdf;base64,")
@@ -108,11 +128,14 @@
       }
 
       const blob = new Blob([bytes], { type: "application/pdf" });
+      currentBlob = blob;
+
       const url = URL.createObjectURL(blob);
       iframe.src = url;
       errorDiv.textContent = "";
     } catch (err) {
       iframe.src = "";
+      currentBlob = null;
       errorDiv.textContent = "⚠️ Base64 inválido o incompleto.";
     }
   }
@@ -122,8 +145,23 @@
       actualizarPDF();
     } else {
       iframe.src = "";
+      currentBlob = null;
       errorDiv.textContent = "";
     }
+  });
+
+  // Botón de descarga
+  downloadBtn.addEventListener("click", () => {
+    if (!currentBlob) {
+      alert("No hay PDF válido para descargar.");
+      return;
+    }
+
+    const filename = filenameInput.value.trim() || "descarga.pdf";
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(currentBlob);
+    link.download = filename;
+    link.click();
   });
 
   // Slider (resizer) con guardado
