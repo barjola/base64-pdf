@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Base64 a PDF Viewer</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      height: 100%;
+      font-family: sans-serif;
+      overflow: hidden;
+    }
+
+    .container {
+      display: flex;
+      height: 100%;
+      width: 100%;
+    }
+
+    .sidebar {
+      min-width: 150px;
+      background: #f0f0f0;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .resizer {
+      width: 5px;
+      background: #ccc;
+      cursor: col-resize;
+      position: relative;
+      z-index: 1;
+    }
+
+    .viewer {
+      flex: 1;
+      height: 100%;
+      border: none;
+    }
+
+    textarea {
+      flex: 1;
+      width: 100%;
+      resize: none;
+      font-family: monospace;
+      font-size: 0.9rem;
+      padding: 0.5rem;
+    }
+
+    h2 {
+      margin-top: 0;
+    }
+
+    .error {
+      color: red;
+      font-size: 0.9rem;
+      margin-bottom: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="sidebar" id="leftPane">
+    <h2>Base64 del PDF</h2>
+	<div id="error" class="error"></div>
+    <textarea id="base64input" placeholder="Pega aquí el base64 del PDF..."></textarea>    
+  </div>
+
+  <div class="resizer" id="resizer"></div>
+
+  <iframe id="pdfviewer" class="viewer"></iframe>
+</div>
+
+<script>
+  const textarea = document.getElementById("base64input");
+  const iframe = document.getElementById("pdfviewer");
+  const errorDiv = document.getElementById("error");
+  const resizer = document.getElementById("resizer");
+  const leftPane = document.getElementById("leftPane");
+
+  // Restaurar ancho del panel izquierdo desde localStorage
+  const savedWidth = localStorage.getItem("leftPaneWidth");
+  if (savedWidth) {
+    leftPane.style.width = savedWidth + "px";
+  } else {
+    leftPane.style.width = "30%";
+  }
+
+  // Actualizar PDF al escribir
+  function actualizarPDF() {
+    const input = textarea.value.trim();
+    const base64 = input.startsWith("data:application/pdf;base64,")
+      ? input.split(",")[1]
+      : input;
+
+    try {
+      const binary = atob(base64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+      }
+
+      const blob = new Blob([bytes], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+      iframe.src = url;
+      errorDiv.textContent = "";
+    } catch (err) {
+      iframe.src = "";
+      errorDiv.textContent = "⚠️ Base64 inválido o incompleto.";
+    }
+  }
+
+  textarea.addEventListener("input", () => {
+    if (textarea.value.trim().length > 0) {
+      actualizarPDF();
+    } else {
+      iframe.src = "";
+      errorDiv.textContent = "";
+    }
+  });
+
+  // Slider (resizer) con guardado
+  let isResizing = false;
+
+  resizer.addEventListener("mousedown", function (e) {
+    isResizing = true;
+    document.body.style.cursor = "col-resize";
+  });
+
+  document.addEventListener("mousemove", function (e) {
+    if (!isResizing) return;
+    const newWidth = Math.max(150, e.clientX); // mínimo 150px
+    leftPane.style.width = newWidth + "px";
+    localStorage.setItem("leftPaneWidth", newWidth); // guardar
+  });
+
+  document.addEventListener("mouseup", function () {
+    if (isResizing) {
+      isResizing = false;
+      document.body.style.cursor = "default";
+    }
+  });
+</script>
+
+</body>
+</html>
