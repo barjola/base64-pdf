@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Base64 a PDF Viewer</title>
+  <title>Base64 to PDF Viewer</title>
   <style>
     * {
       box-sizing: border-box;
@@ -83,13 +83,13 @@
 
 <div class="container">
   <div class="sidebar" id="leftPane">
-    <h2>Base64 del PDF</h2>
+    <h2>Base64 / JSON</h2>
     <div id="error" class="error"></div>
-    <textarea id="base64input" placeholder="Pega base64 o JSON con base64File..."></textarea>
+    <textarea id="base64input" placeholder="Paste here the Base64 or JSON with base64File attribute"></textarea>
 
-    <input type="text" id="filename" value="descarga.pdf" placeholder="Nombre del archivo" />
+    <input type="text" id="filename" value="download.pdf" placeholder="File name" />
 
-    <button id="downloadBtn">⬇ Descargar PDF</button>
+    <button id="downloadBtn">⬇ Download PDF</button>
   </div>
 
   <div class="resizer" id="resizer"></div>
@@ -108,13 +108,11 @@
 
   let currentBlob = null;
 
-  // Restaurar ancho del panel izquierdo desde localStorage
   const savedWidth = localStorage.getItem("leftPaneWidth");
   if (savedWidth) {
     leftPane.style.width = savedWidth + "px";
   }
 
-  // Buscar recursivamente cualquier propiedad "base64File"
   function buscarBase64File(obj) {
     if (typeof obj !== "object" || obj === null) return null;
     if (Array.isArray(obj)) {
@@ -138,14 +136,11 @@
     const input = textarea.value.trim();
     let base64 = input;
 
-    // Intentar parsear como JSON
     try {
       const json = JSON.parse(input);
       const encontrado = buscarBase64File(json);
       if (encontrado) base64 = encontrado;
-    } catch (e) {
-      // No es JSON, se usa el texto tal cual
-    }
+    } catch (e) {}
 
     if (base64.startsWith("data:application/pdf;base64,")) {
       base64 = base64.split(",")[1];
@@ -167,7 +162,7 @@
     } catch (err) {
       iframe.src = "";
       currentBlob = null;
-      errorDiv.textContent = "⚠️ Base64 inválido o no encontrado.";
+      errorDiv.textContent = "⚠️ Invalid Base64 data or JSON format.";
     }
   }
 
@@ -181,21 +176,19 @@
     }
   });
 
-  // Botón de descarga
   downloadBtn.addEventListener("click", () => {
     if (!currentBlob) {
-      alert("No hay PDF válido para descargar.");
+      alert("Invalid PDF data. Please check the Base64 input.");
       return;
     }
 
-    const filename = filenameInput.value.trim() || "descarga.pdf";
+    const filename = filenameInput.value.trim() || "download.pdf";
     const link = document.createElement("a");
     link.href = URL.createObjectURL(currentBlob);
     link.download = filename;
     link.click();
   });
 
-  // Slider (resizer) con guardado
   let isResizing = false;
 
   resizer.addEventListener("mousedown", function (e) {
@@ -205,9 +198,9 @@
 
   document.addEventListener("mousemove", function (e) {
     if (!isResizing) return;
-    const newWidth = Math.max(150, e.clientX); // mínimo 150px
+    const newWidth = Math.max(150, e.clientX);
     leftPane.style.width = newWidth + "px";
-    localStorage.setItem("leftPaneWidth", newWidth); // guardar
+    localStorage.setItem("leftPaneWidth", newWidth);
   });
 
   document.addEventListener("mouseup", function () {
